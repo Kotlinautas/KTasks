@@ -7,18 +7,16 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import kotlinautas.models.Usuario
 import kotlinautas.schemas.Usuarios
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
         buscaUsuarios()
         buscaUsuario()
         insereUsuario()
-        atualizarUsuario()
+        atualizaUsuario()
+        apagaUsuario()
     }
 }
 
@@ -76,7 +74,7 @@ fun Route.insereUsuario() {
     }
 }
 
-fun Route.atualizarUsuario() {
+fun Route.atualizaUsuario() {
     put("{id}") {
         try {
             val id = call.parameters["id"] ?: return@put call.respondText("Informe um ID", status = HttpStatusCode.PaymentRequired)
@@ -97,6 +95,26 @@ fun Route.atualizarUsuario() {
             return@put call.respond(Usuario(id, usuario.nome, usuario.senha))
         } catch (erro: Exception) {
             return@put call.respondText("Erro ao atualizar usuário", status = HttpStatusCode.InternalServerError)
+        }
+    }
+}
+
+fun Route.apagaUsuario() {
+    delete("{id}") {
+        try {
+            val id = call.parameters["id"] ?: return@delete call.respondText("Informe um ID", status = HttpStatusCode.PaymentRequired)
+
+            val remocao = transaction {
+                Usuarios.deleteWhere { Usuarios.id eq id }
+            }
+
+            if (remocao.equals(0)) {
+                return@delete call.respondText("Usuário não encontrado", status = HttpStatusCode.InternalServerError)
+            }
+
+            return@delete call.respondText("Usuário apagado")
+        } catch (erro: Exception) {
+            return@delete call.respondText("Erro ao apagar usuário", status = HttpStatusCode.InternalServerError)
         }
     }
 }
