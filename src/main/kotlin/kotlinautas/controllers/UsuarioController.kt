@@ -1,21 +1,37 @@
 package kotlinautas.controllers
 
 import io.ktor.application.*
+import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import kotlinautas.models.Usuario
-import kotlinautas.models.usuariosFaker
+import kotlinautas.schemas.Usuarios
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
-        get {
-            return@get call.respond(usuariosFaker)
-        }
         post {
-            val usuario = call.receive<Usuario>()
+            try {
+                val usuario = call.receive<Usuario>()
 
-            return@post call.respond(usuario)
+                val insercao = transaction {
+                    Usuarios.insert {
+                        it[id] = usuario.id
+                        it[nome] = usuario.nome
+                        it[senha] = usuario.senha
+                    }
+                }
+
+                if (insercao.equals(0)) {
+                    return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
+                }
+
+                return@post call.respond(usuario)
+            } catch (erro: Exception) {
+                return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
+            }
         }
     }
 }
