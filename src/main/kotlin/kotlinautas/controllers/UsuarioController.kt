@@ -13,37 +13,45 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
-        get {
-            try {
-                val usuarios = transaction {
-                    Usuarios.selectAll().map { Usuarios.toUsuario(it) }
-                }
+        buscaUsuarios()
+        insereUsuario()
+    }
+}
 
-                return@get call.respond(usuarios)
-            } catch (erro: Exception) {
-                return@get call.respondText("Erro ao buscar usuários", status = HttpStatusCode.InternalServerError)
+fun Route.buscaUsuarios() {
+    get {
+        try {
+            val usuarios = transaction {
+                Usuarios.selectAll().map { Usuarios.toUsuario(it) }
             }
+
+            return@get call.respond(usuarios)
+        } catch (erro: Exception) {
+            return@get call.respondText("Erro ao buscar usuários", status = HttpStatusCode.InternalServerError)
         }
-        post {
-            try {
-                val usuario = call.receive<Usuario>()
+    }
+}
 
-                val insercao = transaction {
-                    Usuarios.insert {
-                        it[id] = usuario.id
-                        it[nome] = usuario.nome
-                        it[senha] = usuario.senha
-                    }
+private fun Route.insereUsuario() {
+    post {
+        try {
+            val usuario = call.receive<Usuario>()
+
+            val insercao = transaction {
+                Usuarios.insert {
+                    it[id] = usuario.id
+                    it[nome] = usuario.nome
+                    it[senha] = usuario.senha
                 }
+            }
 
-                if (insercao.equals(0)) {
-                    return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
-                }
-
-                return@post call.respond(usuario)
-            } catch (erro: Exception) {
+            if (insercao.equals(0)) {
                 return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
             }
+
+            return@post call.respond(usuario)
+        } catch (erro: Exception) {
+            return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
         }
     }
 }
