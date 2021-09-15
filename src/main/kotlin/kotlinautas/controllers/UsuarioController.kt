@@ -11,12 +11,14 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
         buscaUsuarios()
         buscaUsuario()
         insereUsuario()
+        atualizarUsuario()
     }
 }
 
@@ -50,7 +52,7 @@ fun Route.buscaUsuario() {
     }
 }
 
-private fun Route.insereUsuario() {
+fun Route.insereUsuario() {
     post {
         try {
             val usuario = call.receive<Usuario>()
@@ -70,6 +72,31 @@ private fun Route.insereUsuario() {
             return@post call.respond(usuario)
         } catch (erro: Exception) {
             return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
+        }
+    }
+}
+
+fun Route.atualizarUsuario() {
+    put("{id}") {
+        try {
+            val id = call.parameters["id"] ?: return@put call.respondText("Informe um ID", status = HttpStatusCode.PaymentRequired)
+
+            val usuario = call.receive<Usuario>()
+
+            val edicao = transaction {
+                Usuarios.update({ Usuarios.id eq id }) {
+                    it[nome] = usuario.nome
+                    it[senha] = usuario.senha
+                }
+            }
+
+            if (edicao.equals(0)) {
+                return@put call.respondText("Erro ao modificar usuário", status = HttpStatusCode.InternalServerError)
+            }
+
+            return@put call.respond(Usuario(id, usuario.nome, usuario.senha))
+        } catch (erro: Exception) {
+            return@put call.respondText("Erro ao atualizar usuário", status = HttpStatusCode.InternalServerError)
         }
     }
 }
