@@ -8,12 +8,14 @@ import io.ktor.routing.*
 import kotlinautas.models.Usuario
 import kotlinautas.schemas.Usuarios
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
         buscaUsuarios()
+        buscaUsuario()
         insereUsuario()
     }
 }
@@ -28,6 +30,22 @@ fun Route.buscaUsuarios() {
             return@get call.respond(usuarios)
         } catch (erro: Exception) {
             return@get call.respondText("Erro ao buscar usuários", status = HttpStatusCode.InternalServerError)
+        }
+    }
+}
+
+fun Route.buscaUsuario() {
+    get("{id}") {
+        try {
+            val id = call.parameters["id"] ?: return@get call.respondText("Informe um ID", status = HttpStatusCode.PaymentRequired)
+
+            val usuario = transaction {
+                Usuarios.select { Usuarios.id eq id }.firstOrNull()
+            } ?: return@get call.respondText("Usuário não encontrado", status = HttpStatusCode.BadRequest)
+
+            return@get call.respond(Usuarios.toUsuario(usuario))
+        } catch (erro: Exception) {
+            return@get call.respondText("Erro ao buscar usuário", status = HttpStatusCode.InternalServerError)
         }
     }
 }
