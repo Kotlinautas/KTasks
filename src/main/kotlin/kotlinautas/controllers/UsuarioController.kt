@@ -8,10 +8,22 @@ import io.ktor.routing.*
 import kotlinautas.models.Usuario
 import kotlinautas.schemas.Usuarios
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
+        get {
+            try {
+                val usuarios = transaction {
+                    Usuarios.selectAll().map { Usuarios.toUsuario(it) }
+                }
+
+                return@get call.respond(usuarios)
+            } catch (erro: Exception) {
+                return@get call.respondText("Erro ao buscar usuários", status = HttpStatusCode.InternalServerError)
+            }
+        }
         post {
             try {
                 val usuario = call.receive<Usuario>()
