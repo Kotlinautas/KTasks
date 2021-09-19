@@ -7,8 +7,10 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import kotlinautas.models.Usuario
 import kotlinautas.schemas.Usuarios
+import kotlinautas.utils.returnLocatedValidationErros
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.valiktor.ConstraintViolationException
 
 fun Route.usuarioRoute() {
     route("/usuarios") {
@@ -68,7 +70,11 @@ fun Route.insereUsuario() {
             }
 
             return@post call.respond(usuario)
-        } catch (erro: Exception) {
+        }catch (ex: ConstraintViolationException){
+            println(returnLocatedValidationErros(ex))
+            return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
+        }
+        catch (erro: Exception) {
             return@post call.respondText("Erro ao criar usuário", status = HttpStatusCode.InternalServerError)
         }
     }
@@ -93,6 +99,9 @@ fun Route.atualizaUsuario() {
             }
 
             return@put call.respond(Usuario(id, usuario.nome, usuario.senha))
+        }catch (ex: ConstraintViolationException){
+            println(returnLocatedValidationErros(ex))
+            return@put call.respondText("Erro ao atualizar usuário", status = HttpStatusCode.InternalServerError)
         } catch (erro: Exception) {
             return@put call.respondText("Erro ao atualizar usuário", status = HttpStatusCode.InternalServerError)
         }

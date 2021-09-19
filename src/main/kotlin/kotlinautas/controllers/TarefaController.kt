@@ -7,8 +7,10 @@ import io.ktor.request.*
 import io.ktor.response.*
 import kotlinautas.models.Tarefa
 import kotlinautas.schemas.Tarefas
+import kotlinautas.utils.returnLocatedValidationErros
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.valiktor.ConstraintViolationException
 
 fun Route.tarefaRoute() {
     route("/tarefas") {
@@ -35,6 +37,9 @@ fun Route.insereTarefa() {
             }
 
             return@post call.respond(tarefa)
+        }catch (ex: ConstraintViolationException){
+            println(returnLocatedValidationErros(ex))
+            return@post call.respondText("Erro ao criar tarefa", status = HttpStatusCode.InternalServerError)
         } catch (erro: Exception) {
             println(erro)
             return@post call.respondText("Erro ao criar tarefa", status = HttpStatusCode.InternalServerError)
